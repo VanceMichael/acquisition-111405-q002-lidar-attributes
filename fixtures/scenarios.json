@@ -1,0 +1,265 @@
+[
+  {
+    "name": "attributes",
+    "routes": [
+      {
+        "path": "/survey",
+        "body": {
+          "delivery": "d1",
+          "layout": "/layout",
+          "blocks": [
+            "/blocks/b1"
+          ],
+          "sealed": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/layout",
+        "body": {
+          "generation": "v1",
+          "recordBytes": 18,
+          "littleEndian": true,
+          "scale": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "offset": [
+            100,
+            200,
+            0
+          ],
+          "extras": [
+            {
+              "name": "temperature",
+              "offset": 16,
+              "type": "u16",
+              "unit": "degC",
+              "missing": 65535
+            }
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/blocks/b1",
+        "body": {
+          "$hex": "64000000c80000002c0100000a0002010000"
+        },
+        "status": 200,
+        "method": "GET",
+        "headers": {
+          "X-Generation": "v1"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "pointId": "d1/b1/0",
+        "xyz": [
+          101,
+          202,
+          3
+        ],
+        "withheld": true,
+        "extras": {
+          "temperature": {
+            "value": 0,
+            "unit": "degC"
+          }
+        }
+      }
+    ],
+    "forbidden": []
+  },
+  {
+    "name": "mixed-layout",
+    "routes": [
+      {
+        "path": "/survey",
+        "body": {
+          "delivery": "d2",
+          "layout": "/layout",
+          "blocks": [
+            "/blocks/b1"
+          ],
+          "sealed": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/layout",
+        "body": {
+          "generation": "v2",
+          "recordBytes": 18,
+          "littleEndian": true,
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "extras": []
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/blocks/b1",
+        "body": {
+          "$hex": "64000000c80000002c0100000a0002010000"
+        },
+        "status": 200,
+        "method": "GET",
+        "headers": {
+          "X-Generation": "v1"
+        }
+      }
+    ],
+    "expected": [],
+    "forbidden": [
+      {
+        "pointId": "d2/b1/0"
+      }
+    ]
+  },
+  {
+    "name": "short-point-record",
+    "routes": [
+      {
+        "path": "/survey",
+        "body": {
+          "delivery": "d1",
+          "layout": "/layout",
+          "blocks": [
+            "/blocks/b1"
+          ],
+          "sealed": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/layout",
+        "body": {
+          "generation": "v1",
+          "recordBytes": 18,
+          "littleEndian": true,
+          "scale": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "offset": [
+            100,
+            200,
+            0
+          ],
+          "extras": [
+            {
+              "name": "temperature",
+              "offset": 16,
+              "type": "u16",
+              "unit": "degC",
+              "missing": 65535
+            }
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/blocks/b1",
+        "body": {
+          "$hex": "64000000"
+        },
+        "status": 200,
+        "method": "GET",
+        "headers": {
+          "X-Generation": "v1"
+        }
+      }
+    ],
+    "expected": [],
+    "forbidden": []
+  },
+  {
+    "name": "missing-extra",
+    "routes": [
+      {
+        "path": "/survey",
+        "body": {
+          "delivery": "d1",
+          "layout": "/layout",
+          "blocks": [
+            "/blocks/b1"
+          ],
+          "sealed": true
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/layout",
+        "body": {
+          "generation": "v1",
+          "recordBytes": 18,
+          "littleEndian": true,
+          "scale": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "offset": [
+            100,
+            200,
+            0
+          ],
+          "extras": [
+            {
+              "name": "temperature",
+              "offset": 16,
+              "type": "u16",
+              "unit": "degC",
+              "missing": 65535
+            }
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/blocks/b1",
+        "body": {
+          "$hex": "64000000c80000002c0100000a000201ffff"
+        },
+        "status": 200,
+        "method": "GET",
+        "headers": {
+          "X-Generation": "v1"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "pointId": "d1/b1/0",
+        "extras": {
+          "temperature": {
+            "value": null,
+            "unit": "degC",
+            "reason": "source-missing"
+          }
+        }
+      }
+    ],
+    "forbidden": []
+  }
+]

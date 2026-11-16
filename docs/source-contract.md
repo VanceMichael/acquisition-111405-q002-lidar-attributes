@@ -21,3 +21,13 @@ GET /survey 返回 delivery、layout、blocks 和 sealed。GET layout 返回 gen
 连续相同 method/path 响应可按数组次序变化，最后一次响应保持；`after` 表达来源步骤先后，`once` 为单次凭证。POST 搜索会按来源能力拒绝不支持的条件。接收端不需要实现来源服务，也不得删改来源限制来通过测试。
 
 上述契约和题面决定功能范围。公开回归提供正常与有冲突/缺口的样例，并未穷举所有组合；应补充与实际设计相符的边界验证。运行与演示不连接新闻站点或其他线上服务。
+
+## 接收端解释规则（`src/source.mjs`）
+
+一次 `source` 领取只使用本次交付的目录与布局，先读 `/survey`，再读该目录指向的布局，然后逐块领取。块与布局不会混用版本：块响应缺少 `X-Generation` 或与布局 `generation` 不一致时，整块不解释，并在 `issues` 留下 `block-generation-missing` / `block-generation-mismatch`。下一版原点或比例调整后重新领取，会按新布局重新生成记录修订，不复用上一版坐标。
+
+每条点记录带 `pointId`（同时是稳定 `id`）、`delivery`、`block`、`blockSha256`、`generation`、`ordinal`、`byteOffset`、`byteLength`，可直接定位到原文块中的字节范围；`xyz` 已按本次布局的 `scale`/`offset` 换算，`withheld` 来自 flags bit0（扣留不等于删除），扩展输出 `{value, unit}`，缺失时 `value=null` 且 `reason=source-missing`。
+
+会令 `complete=false` 的情形包括：`sealed` 不是 true、目录缺布局链接、布局字段非法或类型不在声明的子集内、扩展范围越界或重叠、块 503/不可领取、块 generation 不一致、块长不是 `recordBytes` 整数倍（截断时该块不提交任何点记录）。块目录与属性说明没有同时发布时，不猜测缺失的一半：没有布局就完全不解释块。已领取且相互独立的安全部分（其余块、布局原文、失败响应原文）仍会归档并保留下次复核依据；`issues` 的 `code`、`url`、`status` 等字段即复核位置。
+
+布局未声明 `extras` 且 `recordBytes=18` 时套用契约里的默认 `temperature` 扩展；显式 `extras`（含空数组）按原样解释，不追加默认项。

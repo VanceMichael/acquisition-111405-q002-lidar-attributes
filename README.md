@@ -1,6 +1,6 @@
 # 测绘点云的属性字典与分块资料领取
 
-这是资料接收服务的独立工作副本。当前版本支持人工摘要的领取、原文归档、重复导入和归档检查；新来源的业务行为尚未接入。
+这是资料接收服务的独立工作副本。既有 `legacy` 人工摘要通路保持不变，新增 `source` 模式按契约领取分块点资料：按本次交付自己的布局解释坐标、分类标记与扩展属性，并逐点保留块与字节范围以便回溯。
 
 ## 环境
 
@@ -13,7 +13,7 @@ npm run demo
 
 `npm test` 是初始产品的基线回归，验证现有摘要通路、原文摘要检查、本地来源响应，以及 CLI 在独立进程中的真实领取、重复导入和持久归档检查。该产品是一次执行后退出的采集程序，不提供常驻 HTTP 应用；`npm run collect` 执行领取，`npm run provider` 仅单独启动测试来源。
 
-`npm run acceptance:source` 执行 `test/feature.test.mjs` 中完整的新来源验收。此命令在初始版本会以非零状态退出，原因是新的 source 模式尚待开发，不是环境故障，也不属于已有产品基线。验收文件及断言原样保留，没有跳过、删除或把失败转为成功。交付时需执行 `npm run verify:complete`，让基线和新来源验收同时通过；不能只用基线成功说明新功能已完成。
+`npm run acceptance:source` 执行 `test/feature.test.mjs` 中完整的新来源验收。`npm run test:edge` 覆盖公开样例未穷举的组合：属性说明与块目录异步发布、原点在下一次交付变化、块代次不一致、未声明字节/类型、截断与缺块、未 sealed、空有效结果以及重复领取。交付时需执行 `npm run verify:complete`，让基线、新来源验收与边界验证同时通过；不能只用基线成功说明新功能已完成。
 
 ```sh
 npm run verify:complete
@@ -30,11 +30,12 @@ docker run --rm --network none acquisition-lidar-attributes:local
 docker run --rm --network none acquisition-lidar-attributes:local npm run demo:feature
 ```
 
-镜像固定 Node.js 版本及基础镜像摘要；首次构建可提前拉取基础镜像，正式运行不安装或下载。容器中来源与采集器同进程启动，不需要第二个容器。默认容器命令跑现有测试与实际摘要导入，不将未开发功能伪装成成功。
+镜像固定 Node.js 版本及基础镜像摘要；首次构建可提前拉取基础镜像，正式运行不安装或下载。容器中来源与采集器同进程启动，不需要第二个容器。默认容器命令先跑测试再执行一次实际摘要导入。
 
 ## 工作入口
 
-- `src/collector.mjs` 的 `collect` 是业务入口；既有 `legacy` 模式要保留。
+- `src/collector.mjs` 的 `collect` 是业务入口；`legacy` 与 `source` 两种模式并存。
+- `src/source.mjs` 实现分块点云的领取与解释：布局代次校验、坐标/分类/扩展解码、缺口登记与逐点回溯。
 - `src/transport.mjs` 提供原文字节与请求证据，错误状态由业务层判断。
 - `src/archive.mjs` 支持内容寻址原文与记录修订，存储位置由调用方传入。
 - `provider/server.mjs` 提供允许访问的本地合成来源，路径和例子见 `docs/source-contract.md`。
